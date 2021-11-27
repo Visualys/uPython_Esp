@@ -1,0 +1,16 @@
+import network, dht, socket
+from machine import Pin, Timer
+
+t1=Timer(-1)
+t1.init(mode=Timer.PERIODIC, callback=lambda t:getDHT(), period=20000)
+
+def getDHT():
+    IDX='7'
+    capteur.measure() 
+    t = str(capteur.temperature())
+    h = str(capteur.humidity())
+    print('Temp:',t,'Hum:',h)
+    s=socket.socket()
+    s.connect(('192.168.1.33', 8080))
+    s.send('GET /json.htm?type=command&param=udevice&idx='+IDX+'&nvalue=0&svalue='+t+';'+h+';0 HTTP/1.0\r\n\r\n')
+    s.close()
