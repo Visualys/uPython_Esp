@@ -1,6 +1,8 @@
 import network, dht, socket
 from machine import Pin, Timer
 
+D7=13
+capteur = dht.DHT22(Pin(D7))
 t1=Timer(-1)
 t1.init(mode=Timer.PERIODIC, callback=lambda t:getDHT(), period=20000)
 
