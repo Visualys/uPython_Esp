@@ -1,0 +1,37 @@
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+<script type=text/javascript>
+window.onload=function(){
+	/*
+document.getElementById('scr').addEventListener('keydown', function(e) {
+  if (e.key == 'Tab') {
+    e.preventDefault();
+    var start = this.selectionStart;
+    var end = this.selectionEnd;
+
+    // set textarea value to: text before caret + tab + text after caret
+    this.value = this.value.substring(0, start) +
+      "\t" + this.value.substring(end);
+
+    // put caret at right position again
+    this.selectionStart = this.selectionEnd = start + 1;
+  }
+});
+*/
+}
+</script>
+</head>
+<body>
+<h1>Script</h1>
+
+<form type="GET" action="script_out.htm" target=sout>
+<textarea id=scr name=scr>%%givefile('script.py')%%</textarea>
+<br>
+<input type="submit" value="Enregistrer"><br>
+</form>
+<iframe id=out name=sout></iframe>
+
+
+</body>
+</html>

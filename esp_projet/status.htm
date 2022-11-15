@@ -1,0 +1,18 @@
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Status</h1>
+<h2>Système</h2>
+<p>
+sys.platform : %%sys.platform%%<br>
+sys.version : %%sys.version%%<br>
+</p>
+<h2>Wifi</h2>
+<p>
+adresse mac station : %%ubinascii.hexlify(network.WLAN().config('mac'),':').decode().upper()%%<br>
+</p>
+</body>
+</html>
+

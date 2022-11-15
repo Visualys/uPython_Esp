@@ -1,0 +1,23 @@
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Configuration</h1>
+
+<form type="GET" action="Save">
+
+<h2>Mode point d'accès</h2>
+<label>Nom du réseau :</label><input type="text" name=apnam value=%%dic['apnam']%%><br>
+<label>Mot de passe :</label><input type=text name=appw value=%%dic['appw']%%><br>
+<label>Désactiver si connecté en wifi :</label><input type=checkbox name=apoff value=1 %%'checked' if dic['apoff']=='1' else ''%%><br>
+<label>Cacher le réseau :</label><input type=checkbox name=aphi value=1 %%'checked' if dic['aphi']=='1' else ''%%>
+<h2>Connexion Wi-Fi</h2>
+<label>Nom du réseau :</label><input type="text" name=ssid value=%%dic['ssid']%%><br>
+<label>Mot de passe :</label><input type=text name=wpwd value=%%dic['wpwd']%%><br>
+<label>Nom de l'appareil :</label><input type=text name=hn value=%%dic['hn']%%><br>
+
+<br><br><input type="submit" value="Enregistrer">
+</form>
+</body>
+</html>
