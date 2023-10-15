@@ -1,0 +1,38 @@
+#this code convert a string received from UART RX GPIO23 (0-511) to
+#DMX GPIO10 (canal 1 : 0-255 and canal 2 : 0-255)
+
+from machine import Pin, UART, Timer
+from time import sleep
+
+print('Start in 3s...')
+sleep(3)
+
+led = Pin(2, Pin.OUT)
+dmx = UART(1)
+dmx.init(250000, bits=8, parity=None, stop=2, tx=17, invert=UART.INV_TX)
+
+B = [0,0,0,0,0,0,0,0]
+dmxlevel = 0
+
+def write_frame():
+    led(1)
+    B[1]=int(round(max(min(dmxlevel, 255),0),0))
+    B[2]=int(round(max(min(dmxlevel-256, 255),0),0))
+    mes=bytes(B)
+    dmx.sendbreak()
+    dmx.write(mes)
+    led(0)
+
+timer1 = Timer(-1)
+timer1.init(period=500, mode=Timer.PERIODIC, callback=lambda t:write_frame())
+
+com_in = UART(2)
+com_in.init(115200, bits=8, parity=None, stop=1, rx=23, timeout=200) 
+
+while True:
+    l=com_in.any()
+    if l:
+        s = com_in.read(l)
+        if s.endswith('\n'):
+            dmxlevel = int(s)
+    sleep(.2)
