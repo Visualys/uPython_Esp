@@ -28,16 +28,15 @@ def read_rf():
 #read_rf(rx_pin)
 
     
-def rfcommand_prise2(val):
-    pulselength = 300
+def rfcommand_prise2(val, pulselength=280, repeats=8):
     from time import sleep_us
-    tx_pin=Pin(12,Pin.OUT)
+    pulse3 = 3 * pulselength
+    tx_pin = Pin(12, Pin.OUT)
     if val:
         data='010101000100010101010011'
     else:
         data='010101000100010101011100'
-    pulse3 = 3*pulselength
-    for n in range(8):
+    for n in range(repeats):
         for x in range(len(data)):
             tx_pin(1)
             if data[x]=='1':
@@ -52,5 +51,5 @@ def rfcommand_prise2(val):
         tx_pin(1)
         sleep_us(pulselength) 
         tx_pin(0)
-        sleep_us(pulselength*34) 
+        sleep_us(pulselength*10) 
 
