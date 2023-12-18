@@ -214,4 +214,3 @@ def read_rf():
             print('%s °C %x %s' % (temp1+temp2, hum, '%H'))
         except:
             pass
-
