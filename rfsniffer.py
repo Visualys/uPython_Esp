@@ -200,30 +200,31 @@ def rf_decode(tim, dat):
             break
         head_removed.append(dat[0])
         dat = dat[1:]
-    print('occur1:%s, occur2:%s, removed %s' % (occur1, occur2, head_removed))
     avg = .5 * (occur1 + occur2)
     for t in dat[:-1]:
         out += '1' if t > avg else '0'
-    print(out)
+    
     if len(out)==24 and len(head_removed)==1:
         print('detected SCS !')
-    if len(out)==40 and len(head_removed)==6:
+        print(out)
+    elif len(out)==40 and len(head_removed)==6:
         print('detected TFA Dostmann !')
         temp = round((eval('0b'+out[16:28])-1220)*(1/18),2)
         hum = '%x' % eval('0b' + out[28:36]) 
         ch = eval('0b' + out[36:40])
         print( 'temperature:%s, humidity:%s, channel:%s' %(temp, hum, ch))
-        sleep(0.25)
-    if len(out)==64 and len(head_removed)==2:
+        sleep(0.4)
+    elif len(out)==64 and len(head_removed)==2:
         print('detected Smartwares !')
+        print(out)
+    else:
+        print(dat)
+        print('occur1:%s, occur2:%s, removed %s' % (occur1, occur2, head_removed))
+        print(out)
 
 def loop_sniff():
     while True:
         valid, tim, dat = rf_sniff()
         if valid:
-            print('timing:')
-            print(tim)
-            print('data:')
-            print(dat)
             rf_decode(tim, dat)
 
