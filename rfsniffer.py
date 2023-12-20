@@ -2,6 +2,7 @@
 # ------------------
 from machine import Pin, time_pulse_us
 from utime import sleep
+import urequests
 
 HOSTNAME = 'ESP_RF_SNIFFER'
 RX_PIN = Pin(13, Pin.IN)
@@ -31,162 +32,69 @@ def start_wifi(ssid='Ben&Steph', pwd='Ben&Steph'):
         print()
         print('rssi: %sdB IP: %s' % (sta.status('rssi'),sta.ifconfig()[0]))
 
-"""
-def read_pulse():
-    h = time_pulse_us(RX_PIN, 1, 1000000)
-    l = time_pulse_us(RX_PIN, 0, 1000000)
-    aggr = 100
-    h = aggr * int(h / aggr)
-    l = aggr * int(l / aggr)
-    return h,l
-    
-def read_rf():
-    valid = False
-    while not valid:
-        dat = []
-        h=l=0
-        while not 15000 < l < 17000:
-            h,l = read_pulse()
-        valid = True
-        l=0
-        while not 15000 < l < 17000:
-            h,l = read_pulse()
-            dat.append(l)
-            if (5 < len(dat) < 45) and not (500 < l < 5000): 
-                valid = False
-                break
-            if len(dat)>46:
-                valid = False
-                break                
-    if len(dat)==46:
-        out=''
-        n=5
-        while n < len(dat):
-            if dat[n]>3000:
-                out+='1'
-            else:
-                out+='0'
-            n+=1
-        try:
-            temp1=eval('0b' + out[18:24])-15
-            temp2=eval('0b' + out[24:28])
-            #if temp2>10:
-            #    temp2=10-temp2
-            temp2=temp2/16
-            hum=eval('0b' + out[28:36])
-            #print (dat, out)
-            print('%s°C %x%s' % (temp1+temp2, hum, '%H'))
-        except:
-            pass
 
-def read_rf_loop():
-    while True:
-        read_rf()
-"""        
-import _thread
-
-start_wifi()
-#_thread.start_new_thread(read_rf_loop, ())
-
-# ------------------------------ new version
-
-def rf_read_pulse(pulselength=0):
-    h = time_pulse_us(RX_PIN, 1, 1000000)
-    l = time_pulse_us(RX_PIN, 0, 1000000)
-    if pulselength == 0:
-        pulselength = h if h > 0 else 1
-    return pulselength , [round(h/pulselength),round(l/pulselength)]
-
-def rf_sniff():
-    valid = False
-    while not valid:
-        dat=[]
-        while not valid:
-            ret = rf_read_pulse()
-            if ret[0] > 100 and ret[1][1]>8:
-                valid = True                
-        pulselength = ret[0]
-        longpulse = ret[1][1]
-        for n in range(99):
-            ret = rf_read_pulse(pulselength)
-            if 0 in ret[1]:
-                valid = False
-                break
-            if ret[1][1]>=longpulse:
-                break
-            dat.append(ret[1])
-        if n<8:
-            valid = False
-        if valid:
-            return pulselength, dat
-
-def decode1(ret):
-    c = ''
-    pmin = 999
-    pmax = 0
-    for n in range(len(ret[1])):
-        if ret[1][n][1] < pmin:
-            pmin = ret[1][n][1]
-        if ret[1][n][1] > pmax:
-            pmax = ret[1][n][1]
-    pavg = (pmin+pmax)/2        
-    for n in range(len(ret[1])):
-        c+='1' if ret[1][n][1]/ret[1][n][0]>pavg else '0'
-    if len(c)==40:
-        print(c)
-        temp = round((eval('0b'+c[16:28])-1220)*(1/18),2)
-        hum = '%x' % eval('0b' + c[28:36]) 
-        ch = eval('0b' + c[36:40])
-        print( 'temperature:%s, humidity:%s, channel:%s' %(temp, hum, ch))
-        sleep(0.25)
-    
-
-def loop2():
-    while True:
-        a = rf_sniff()
-        decode1(a)
-
-#----------------------------------------- version 2023-12-12
+#----------------------------------------- version 2023-12-19
 def rf_read_pulse():
     h = time_pulse_us(RX_PIN, 1, 100000)
     l = time_pulse_us(RX_PIN, 0, 100000)
-    if h==0:
-        h=1
-    return h, round(4*(l/h)) # pulselength, count of low quartets
+    return h, l
 
 def rf_sniff():
-    minlength = 128
-    minsyncquartet = 80
+    detectH = 100
+    detectL = 9500
     maxdata = 99
-    tim = []
     dat = []
     count = 0
     valid = False
     while not valid:
-        pulselength, quartet = rf_read_pulse()
-        if pulselength > minlength and quartet > minsyncquartet: # sync detection
+        h, l = rf_read_pulse()
+        if h > detectH and l > detectL: # sync detection
             valid = True
-            longpulse = quartet
-    tim.append(pulselength)
-    dat.append(quartet)
+            longlow = l
+    dat.append(h)
+    dat.append(l)
     while valid:
-        pulselength, quartet = rf_read_pulse()
-        if pulselength < minlength or quartet < 1:
+        h, l = rf_read_pulse()
+        if h < detectH or l < detectH:
             valid = False
             break
         count += 1
-        tim.append(pulselength)
-        dat.append(quartet)
-        if .78*longpulse < quartet < 1.22*longpulse:
+        dat.append(h)
+        dat.append(l)
+        tolerance = longlow * 0.22
+        if (longlow-tolerance) < l < (longlow+tolerance):
             break
         if count > maxdata:
             valid = False
             break
     if count < 10:
         valid = False
-    return valid, tim, dat
+    print(valid, dat)
+    return valid, dat
 
-def rf_decode(tim, dat):
+def loop():
+    while True:
+        valid = False
+        while not valid:
+            valid, dat = rf_sniff()
+        aggregate=1
+        while len(set(dat))>6:
+            aggregate*=2
+            for n in range(len(dat)):
+                dat[n]=aggregate*round(dat[n]/aggregate)
+        print(dat)
+        if min(dat)>0:
+            sig = list(set(dat))
+            sig.sort()
+            req = '&sig=' + ','.join(str(n) for n in sig)
+            req+='&seq=' + ''.join(str(sig.index(n)) for n in dat)
+            print(req)
+            urequests.get('http://192.168.1.32:8080/dmx?cmd=rfrec'+req)
+            T = [int(4*dat[n+1]/dat[n]) for n in range(0, len(dat), 2)]
+            print(T)
+            rf_decode(T)
+
+def rf_decode(dat):
     out = ''
     head_removed = []
     frequencies = sorted(dat,key=dat.count, reverse=True)
@@ -203,16 +111,17 @@ def rf_decode(tim, dat):
     avg = .5 * (occur1 + occur2)
     for t in dat[:-1]:
         out += '1' if t > avg else '0'
-    
     if len(out)==24 and len(head_removed)==1:
         print('detected SCS !')
         print(out)
     elif len(out)==40 and len(head_removed)==6:
         print('detected TFA Dostmann !')
+        print(out)
+        idx = eval('0b' + out[0:8]) 
         temp = round((eval('0b'+out[16:28])-1220)*(1/18),2)
         hum = '%x' % eval('0b' + out[28:36]) 
         ch = eval('0b' + out[36:40])
-        print( 'temperature:%s, humidity:%s, channel:%s' %(temp, hum, ch))
+        print( 'id:%s, temperature:%s, humidity:%s, channel:%s' %(idx, temp, hum, ch))
         sleep(0.4)
     elif len(out)==64 and len(head_removed)==2:
         print('detected Smartwares !')
@@ -222,9 +131,8 @@ def rf_decode(tim, dat):
         print('occur1:%s, occur2:%s, removed %s' % (occur1, occur2, head_removed))
         print(out)
 
-def loop_sniff():
-    while True:
-        valid, tim, dat = rf_sniff()
-        if valid:
-            rf_decode(tim, dat)
+import _thread
+start_wifi()
+#_thread.start_new_thread(read_rf_loop, ())
+loop()
 
