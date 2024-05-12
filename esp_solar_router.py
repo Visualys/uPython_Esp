@@ -31,7 +31,8 @@ def start_wifi(ssid=wifiSSID, pwd=wifiKey):
                 machine.reset()
         print()
         print('rssi: %sdB IP: %s' % (sta.status('rssi'),sta.ifconfig()[0]))
- 
+start_wifi()
+
 # Send to webserver
 serveraddr = ('192.168.1.32',8080)
  
@@ -87,6 +88,11 @@ s.reverse = True
 s.init(17)
 s.set(0)
 
+s2 = servo()
+s2.reverse = True
+s2.init(16)
+s2.set(0)
+
 pzem1 = pzem004tv3()
 pzem1.init(0x01, 19, 18)
 
@@ -114,22 +120,30 @@ def single_process():
             if ret[i]==27: battload = ret[i+1]
             if ret[i]==32: linky = ret[i+1]
         print('batt:%s battload:%s linky:%s' %(batt,battload,linky))
-        if batt<80:
+        if batt<90:
             c=0
         elif battload>0:
             c=0
         else:
             c=w-linky
         print('consigne : %s W' % c)    
-        for l in range(5):
-            pzem1.read()
-            w=pzem1.watts()
-            index=pzem1.index()
-            pos+=(c-w)/16
-            if pos>100:pos=100
+        for l in range(4):
+            try:
+                pzem1.read()
+                w=pzem1.watts()
+                index=pzem1.index()
+                pos+=(c-w)/16
+            except:
+                pos=0
+            if pos>200:pos=200
             if pos<0:pos=0
-            print('w is %s - set pos to %s' % (w,int(pos)))
-            s.set(int(pos))
+            #print('w is %s - set pos to %s' % (w,int(pos)))
+            if pos<=100:
+                s.set(int(pos))
+                s2.set(0)
+            else:
+                s.set(100)
+                s2.set(int(pos)-100)
             sleep(1.5)
         server_message('%s,%s,%s,%s,%s,%s' % (20,w,22,pos,21,index) )
  
@@ -138,7 +152,7 @@ def run():
         single_process()
 
 
-run()
-#import _thread
-#_thread.start_new_thread(single_process, ())
+#run()
+import _thread
+_thread.start_new_thread(run, ())
 
